@@ -1,0 +1,69 @@
+import time
+import multiprocessing
+from multiprocessing import Pool
+import os
+
+FILENAME = r"c:\Users\aluno\Documents\Atividadediv\atividade2\numero2.txt"
+
+def carregar_numeros(filename):
+    with open(filename, "r") as f:
+        return [int(linha.strip()) for linha in f if linha.strip()]
+
+def soma_parcial(chunk):
+    return sum(chunk)
+
+def dividir_chunks(nums, n):
+    tamanho = len(nums) // n
+    chunks = []
+    for i in range(n):
+        inicio = i * tamanho
+        fim = inicio + tamanho if i < n - 1 else len(nums)
+        chunks.append(nums[inicio:fim])
+    return chunks
+
+def soma_serial(nums):
+    inicio = time.perf_counter()
+    resultado = sum(nums)
+    fim = time.perf_counter()
+    return resultado, fim - inicio
+
+def soma_paralela(nums, num_threads):
+    chunks = dividir_chunks(nums, num_threads)
+    inicio = time.perf_counter()
+    with Pool(processes=num_threads) as pool:
+        parciais = pool.map(soma_parcial, chunks)
+    resultado = sum(parciais)
+    fim = time.perf_counter()
+    return resultado, fim - inicio
+
+if __name__ == "__main__":
+    print("Carregando números...")
+    nums = carregar_numeros(FILENAME)
+    print(f"Total de números: {len(nums):,}\n")
+
+    print("=" * 45)
+    print("  SOLUÇÃO SERIAL")
+    print("=" * 45)
+    resultado_s, tempo_s = soma_serial(nums)
+    print(f"  Resultado (soma) : {resultado_s}")
+    print(f"  Tempo            : {tempo_s:.6f} s")
+    print()
+
+    configs_threads = [2, 4, 8, 12]
+
+    print("=" * 45)
+    print("  SOLUÇÃO PARALELA (multiprocessing)")
+    print("=" * 45)
+    for t in configs_threads:
+        resultado_p, tempo_p = soma_paralela(nums, t)
+        speedup = tempo_s / tempo_p
+        eficiencia = (speedup / t) * 100
+        print(f"\n  Threads   : {t}")
+        print(f"  Resultado : {resultado_p}")
+        print(f"  Tempo     : {tempo_p:.6f} s")
+        print(f"  Speedup   : {speedup:.3f}x")
+        print(f"  Eficiência: {eficiencia:.1f}%")
+
+    print("\n" + "=" * 45)
+    print("  Experimento concluído.")
+    print("=" * 45)
